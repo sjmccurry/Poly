@@ -1,10 +1,13 @@
 import os
 import re
+import json
 import tkinter as tk
 from tkinter import filedialog, messagebox, Entry, IntVar, Checkbutton
 from docx import Document
 
+CONFIG_FILE = "poly_config.json"
 DEFAULT_TEMPLATE_FOLDER = "templates"
+DEFAULT_OUTPUT_FOLDER = os.getcwd()
 
 class PolyApp:
     def __init__(self, root):
@@ -15,11 +18,38 @@ class PolyApp:
 
         self.selected_templates = []
         self.entries = {}
-        self.output_folder = None
         self.template_folder = DEFAULT_TEMPLATE_FOLDER
+        self.output_folder = DEFAULT_OUTPUT_FOLDER
+
+        self.load_config()
 
         self.create_widgets()
         self.load_templates()
+
+    def load_config(self):
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r") as f:
+                    data = json.load(f)
+                    self.template_folder = data.get("template_folder", DEFAULT_TEMPLATE_FOLDER)
+                    self.output_folder = data.get("output_folder", DEFAULT_OUTPUT_FOLDER)
+            except:
+                self.template_folder = DEFAULT_TEMPLATE_FOLDER
+                self.output_folder = DEFAULT_OUTPUT_FOLDER
+        else:
+            self.template_folder = DEFAULT_TEMPLATE_FOLDER
+            self.output_folder = DEFAULT_OUTPUT_FOLDER
+            self.save_config()
+
+    def save_config(self):
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump({
+                    "template_folder": self.template_folder,
+                    "output_folder": self.output_folder
+                }, f)
+        except:
+            pass
 
     def create_widgets(self):
         tk.Label(self.root, text="Poly", font=("Segoe UI", 20, "bold"), bg="#121212", fg="white").pack(pady=10)
@@ -70,6 +100,7 @@ class PolyApp:
         folder = filedialog.askdirectory(title="Select Template Folder")
         if folder:
             self.template_folder = folder
+            self.save_config()
             self.load_templates()
 
     def load_templates(self):
@@ -141,9 +172,12 @@ class PolyApp:
             self.entries[field] = entry
 
     def generate_documents(self):
-        output_dir = filedialog.askdirectory(title="Select Output Folder")
+        output_dir = filedialog.askdirectory(title="Select Output Folder", initialdir=self.output_folder)
         if not output_dir:
             return
+
+        self.output_folder = output_dir
+        self.save_config()
 
         values = {key: entry.get() for key, entry in self.entries.items()}
 
@@ -171,8 +205,7 @@ class PolyApp:
             try:
                 rfonts = run._element.xpath(".//w:rFonts")
                 if rfonts:
-                    font = rfonts[0].get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ascii")
-                    return font
+                    return rfonts[0].get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ascii")
             except:
                 pass
             return None
@@ -263,7 +296,6 @@ class PolyApp:
                 for cell in row.cells:
                     for para in cell.paragraphs:
                         apply_replacement(para)
-
 
 if __name__ == "__main__":
     root = tk.Tk()
