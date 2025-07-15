@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, Entry, IntVar, Checkbutton
 from docx import Document
 
-TEMPLATE_FOLDER = "templates"
+DEFAULT_TEMPLATE_FOLDER = "templates"
 
 class PolyApp:
     def __init__(self, root):
@@ -16,6 +16,7 @@ class PolyApp:
         self.selected_templates = []
         self.entries = {}
         self.output_folder = None
+        self.template_folder = DEFAULT_TEMPLATE_FOLDER
 
         self.create_widgets()
         self.load_templates()
@@ -62,22 +63,28 @@ class PolyApp:
         tk.Button(self.buttons_frame, text="Generate Document(s)", command=self.generate_documents,
                   bg="#0078d4", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#005ea2").grid(row=0, column=1, padx=10)
 
-        tk.Button(self.buttons_frame, text="Sync Templates", command=self.sync_templates,
+        tk.Button(self.buttons_frame, text="Select Template Folder", command=self.select_template_folder,
                   bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#666666").grid(row=0, column=2, padx=10)
+
+    def select_template_folder(self):
+        folder = filedialog.askdirectory(title="Select Template Folder")
+        if folder:
+            self.template_folder = folder
+            self.load_templates()
 
     def load_templates(self):
         for widget in self.template_frame.winfo_children():
             widget.destroy()
 
-        if not os.path.exists(TEMPLATE_FOLDER):
-            os.makedirs(TEMPLATE_FOLDER)
+        if not os.path.exists(self.template_folder):
+            os.makedirs(self.template_folder)
 
-        files = [f for f in os.listdir(TEMPLATE_FOLDER) if f.endswith(".docx")]
+        files = [f for f in os.listdir(self.template_folder) if f.endswith(".docx")]
         for file in files:
             var = IntVar()
             cb = Checkbutton(self.template_frame, text=file, variable=var,
                              font=("Segoe UI", 10), anchor="w", command=self.update_selected_templates,
-                             bg="#1e1e1e", fg="white", wraplength=330, justify="left",
+                             bg="#1e1e1e", fg="white", wraplength=430, justify="left",
                              selectcolor="#1e1e1e", activebackground="#1e1e1e")
             cb.var = var
             cb.filename = file
@@ -94,25 +101,10 @@ class PolyApp:
         file_path = filedialog.askopenfilename(filetypes=[("Word Documents", "*.docx")])
         if file_path:
             filename = os.path.basename(file_path)
-            dest_path = os.path.join(TEMPLATE_FOLDER, filename)
+            dest_path = os.path.join(self.template_folder, filename)
             with open(file_path, "rb") as src, open(dest_path, "wb") as dst:
                 dst.write(src.read())
             self.load_templates()
-
-    def sync_templates(self):
-        folder = filedialog.askdirectory(title="Select Folder to Sync From")
-        if not folder:
-            return
-
-        os.makedirs(TEMPLATE_FOLDER, exist_ok=True)
-        for filename in os.listdir(folder):
-            if filename.endswith(".docx"):
-                src_path = os.path.join(folder, filename)
-                dest_path = os.path.join(TEMPLATE_FOLDER, filename)
-                with open(src_path, "rb") as src_file:
-                    with open(dest_path, "wb") as dest_file:
-                        dest_file.write(src_file.read())
-        self.load_templates()
 
     def extract_poly_fields(self, document):
         pattern = r"\{poly\.([a-zA-Z0-9_ ]+)\}"
@@ -134,7 +126,7 @@ class PolyApp:
         all_fields = set()
         for filename in self.selected_templates:
             try:
-                doc = Document(os.path.join(TEMPLATE_FOLDER, filename))
+                doc = Document(os.path.join(self.template_folder, filename))
                 fields = self.extract_poly_fields(doc)
                 all_fields.update(fields)
             except Exception:
@@ -157,7 +149,7 @@ class PolyApp:
 
         for filename in self.selected_templates:
             try:
-                doc_path = os.path.join(TEMPLATE_FOLDER, filename)
+                doc_path = os.path.join(self.template_folder, filename)
                 doc = Document(doc_path)
                 self.replace_placeholders(doc, values)
                 new_name = filename.replace(".docx", "_filled.docx")
