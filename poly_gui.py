@@ -26,7 +26,7 @@ class PolyApp:
         main_frame = tk.Frame(self.root, bg="#121212")
         main_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        template_outer = tk.Frame(main_frame, bg="#1e1e1e", width=350)
+        template_outer = tk.Frame(main_frame, bg="#1e1e1e", width=450)
         template_outer.pack(side="left", fill="y", padx=(0, 10), pady=10)
         template_outer.pack_propagate(False)
 
@@ -63,7 +63,7 @@ class PolyApp:
                   bg="#0078d4", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#005ea2").grid(row=0, column=1, padx=10)
 
         tk.Button(self.buttons_frame, text="Sync Templates", command=self.sync_templates,
-                  bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#666").grid(row=0, column=2, padx=10)
+                  bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#666666").grid(row=0, column=2, padx=10)
 
     def load_templates(self):
         for widget in self.template_frame.winfo_children():
@@ -100,17 +100,18 @@ class PolyApp:
             self.load_templates()
 
     def sync_templates(self):
-        sync_folder = filedialog.askdirectory(title="Select Folder to Sync Templates From")
-        if not sync_folder:
+        folder = filedialog.askdirectory(title="Select Folder to Sync From")
+        if not folder:
             return
 
-        for file in os.listdir(sync_folder):
-            if file.endswith(".docx"):
-                source_path = os.path.join(sync_folder, file)
-                dest_path = os.path.join(TEMPLATE_FOLDER, file)
-                with open(source_path, "rb") as src, open(dest_path, "wb") as dst:
-                    dst.write(src.read())
-
+        os.makedirs(TEMPLATE_FOLDER, exist_ok=True)
+        for filename in os.listdir(folder):
+            if filename.endswith(".docx"):
+                src_path = os.path.join(folder, filename)
+                dest_path = os.path.join(TEMPLATE_FOLDER, filename)
+                with open(src_path, "rb") as src_file:
+                    with open(dest_path, "wb") as dest_file:
+                        dest_file.write(src_file.read())
         self.load_templates()
 
     def extract_poly_fields(self, document):
@@ -141,7 +142,8 @@ class PolyApp:
 
         self.entries = {}
         for field in sorted(all_fields):
-            tk.Label(self.fields_frame, text=field.replace("_", " "), bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
+            label_text = re.sub(r'([a-z])([A-Z])', r'\1 \2', field).replace("_", " ")
+            tk.Label(self.fields_frame, text=label_text, bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
             entry = Entry(self.fields_frame, width=50, bg="#2a2a2a", fg="white", insertbackground="white", font=("Segoe UI", 10))
             entry.pack(anchor="w", padx=10, pady=2)
             self.entries[field] = entry
@@ -171,15 +173,30 @@ class PolyApp:
     def replace_placeholders(self, doc, replacements):
         pattern = re.compile(r"\{poly\.([a-zA-Z0-9_ ]+)\}")
 
+        def get_effective_font(run):
+            if run.font.name:
+                return run.font.name
+            try:
+                rfonts = run._element.xpath(".//w:rFonts")
+                if rfonts:
+                    font = rfonts[0].get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ascii")
+                    return font
+            except:
+                pass
+            return None
+
+
         def split_runs_by_char(paragraph):
             chars = []
             for run in paragraph.runs:
+                font_name = get_effective_font(run)
                 for c in run.text:
                     chars.append({
                         "char": c,
                         "bold": run.bold,
                         "italic": run.italic,
-                        "underline": run.underline
+                        "underline": run.underline,
+                        "font": font_name
                     })
             return chars
 
@@ -200,34 +217,36 @@ class PolyApp:
                 replacement = replacements.get(field, match.group(0))
 
                 new_chars.extend(chars[last_idx:start])
-                fmt = chars[start] if start < len(chars) else {"bold": None, "italic": None, "underline": None}
-                new_chars.extend([{
-                    "char": rc,
-                    "bold": fmt['bold'],
-                    "italic": fmt['italic'],
-                    "underline": fmt['underline']
-                } for rc in replacement])
+                fmt = chars[start] if start < len(chars) else {"bold": None, "italic": None, "underline": None, "font": None}
+                new_chars.extend([{ "char": rc, "bold": fmt['bold'], "italic": fmt['italic'], "underline": fmt['underline'], "font": fmt['font'] } for rc in replacement])
                 last_idx = end
 
             new_chars.extend(chars[last_idx:])
 
             for run in paragraph.runs:
                 run.text = ""
-            paragraph._element.clear_content()
 
+            # Rebuild using the same paragraph without wiping its XML
             new_run = None
             for ch in new_chars:
                 if (
                     new_run is None or
                     new_run.bold != ch['bold'] or
                     new_run.italic != ch['italic'] or
-                    new_run.underline != ch['underline']
+                    new_run.underline != ch['underline'] or
+                    (new_run.font.name != ch['font'] if ch['font'] else False)
                 ):
                     new_run = paragraph.add_run()
                     new_run.bold = ch['bold']
                     new_run.italic = ch['italic']
                     new_run.underline = ch['underline']
+                    if ch['font']:
+                        try:
+                            new_run.font.name = ch['font']
+                        except:
+                            pass  # just in case the font is unavailable
                 new_run.text += ch['char']
+
 
         for para in doc.paragraphs:
             apply_replacement(para)
