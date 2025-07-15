@@ -21,6 +21,7 @@ from the author or WMM Legal.
 
 
 import os
+import socket
 import re
 try:
     import tkinter as tk
@@ -33,6 +34,23 @@ try:
 except:
     os.system('pip3 install python-docx')
     from docx import Document
+
+import socket
+import os
+
+def has_internet(host="8.8.8.8", port=53, timeout=2):
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except Exception:
+        return False
+
+if has_internet():
+    os.system("python poly_updator.py")
+
+
+
 
 TEMPLATE_FOLDER = "templates"
 
@@ -146,10 +164,10 @@ class PolyApp:
         for filename in self.selected_templates:
             try:
                 doc_path = os.path.join(TEMPLATE_FOLDER, filename)
-                doc = Document(doc_path)
+                doc = Document(doc_path)  # Reload fresh document each time
                 self.replace_placeholders(doc, values)
                 new_name = filename.replace(".docx", "_filled.docx")
-                doc.save(os.path.join(TEMPLATE_FOLDER, new_name))
+                doc.save(os.path.join(TEMPLATE_FOLDER, new_name))  # Save in template folder or change as needed
             except Exception as e:
                 messagebox.showerror("Error", f"Could not process {filename}:\n{str(e)}")
                 return
