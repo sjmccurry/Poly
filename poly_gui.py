@@ -1,17 +1,8 @@
 import os
 import re
-import sys
-try:
-    import tkinter as tk
-except:
-    os.system('pip3 install tkinter')
-    import tkinter as tk
+import tkinter as tk
 from tkinter import filedialog, messagebox, Entry, IntVar, Checkbutton
-try:
-    from docx import Document
-except:
-    os.system('pip3 install python-docx')
-    from docx import Document
+from docx import Document
 
 TEMPLATE_FOLDER = "templates"
 
@@ -24,81 +15,64 @@ class PolyApp:
 
         self.selected_templates = []
         self.entries = {}
+        self.output_folder = None
 
         self.create_widgets()
         self.load_templates()
 
     def create_widgets(self):
-        self.root.configure(bg="#0f0f0f")
-        tk.Label(self.root, text="Poly", font=("Segoe UI", 24, "bold"), bg="#0f0f0f", fg="white").pack(pady=(20, 10))
+        tk.Label(self.root, text="Poly", font=("Segoe UI", 20, "bold"), bg="#121212", fg="white").pack(pady=10)
 
-        main_frame = tk.Frame(self.root, bg="#0f0f0f")
+        main_frame = tk.Frame(self.root, bg="#121212")
         main_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        left_panel = tk.Frame(main_frame, bg="#1a1a1a", width=370, height=600, bd=0, relief="flat")
-        left_panel.grid(row=0, column=0, sticky="ns")
-        left_panel.grid_propagate(False)
+        template_outer = tk.Frame(main_frame, bg="#1e1e1e", width=350)
+        template_outer.pack(side="left", fill="y", padx=(0, 10), pady=10)
+        template_outer.pack_propagate(False)
 
-        self.template_canvas = tk.Canvas(left_panel, bg="#1a1a1a", highlightthickness=0, bd=0)
-        template_scrollbar = tk.Scrollbar(left_panel, orient="vertical", command=self.template_canvas.yview, bg="#2a2a2a")
-        self.template_canvas.configure(yscrollcommand=template_scrollbar.set)
+        canvas = tk.Canvas(template_outer, bg="#1e1e1e", highlightthickness=0)
+        scrollbar = tk.Scrollbar(template_outer, orient="vertical", command=canvas.yview)
+        self.template_frame = tk.Frame(canvas, bg="#1e1e1e")
 
-        self.template_inner_frame = tk.Frame(self.template_canvas, bg="#1a1a1a")
-        self.template_canvas.create_window((0, 0), window=self.template_inner_frame, anchor="nw")
-        self.template_inner_frame.bind("<Configure>", lambda e: self.template_canvas.configure(scrollregion=self.template_canvas.bbox("all")))
+        self.template_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=self.template_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
-        self.template_canvas.pack(side="left", fill="both", expand=True, padx=6, pady=6)
-        template_scrollbar.pack(side="right", fill="y")
+        field_outer = tk.Frame(main_frame, bg="#1e1e1e")
+        field_outer.pack(side="left", fill="both", expand=True, padx=(10, 0), pady=10)
 
-        right_panel = tk.Frame(main_frame, bg="#1a1a1a", bd=0)
-        right_panel.grid(row=0, column=1, sticky="nsew", padx=(20, 0))
-        main_frame.grid_columnconfigure(1, weight=1)
-        main_frame.grid_rowconfigure(0, weight=1)
+        field_canvas = tk.Canvas(field_outer, bg="#1e1e1e", highlightthickness=0)
+        field_scrollbar = tk.Scrollbar(field_outer, orient="vertical", command=field_canvas.yview)
+        self.fields_frame = tk.Frame(field_canvas, bg="#1e1e1e")
 
-        self.fields_canvas = tk.Canvas(right_panel, bg="#1a1a1a", highlightthickness=0, bd=0)
-        fields_scrollbar = tk.Scrollbar(right_panel, orient="vertical", command=self.fields_canvas.yview, bg="#2a2a2a")
-        self.fields_canvas.configure(yscrollcommand=fields_scrollbar.set)
+        self.fields_frame.bind("<Configure>", lambda e: field_canvas.configure(scrollregion=field_canvas.bbox("all")))
+        field_canvas.create_window((0, 0), window=self.fields_frame, anchor="nw")
+        field_canvas.configure(yscrollcommand=field_scrollbar.set)
+        field_canvas.pack(side="left", fill="both", expand=True)
+        field_scrollbar.pack(side="right", fill="y")
 
-        self.fields_inner_frame = tk.Frame(self.fields_canvas, bg="#1a1a1a")
-        self.fields_canvas.create_window((0, 0), window=self.fields_inner_frame, anchor="nw")
-        self.fields_inner_frame.bind("<Configure>", lambda e: self.fields_canvas.configure(scrollregion=self.fields_canvas.bbox("all")))
-
-        self.fields_canvas.pack(side="left", fill="both", expand=True, padx=6, pady=6)
-        fields_scrollbar.pack(side="right", fill="y")
-
-        self.buttons_frame = tk.Frame(self.root, bg="#0f0f0f")
-        self.buttons_frame.pack(pady=(0, 25))
-
-        style = {
-            "font": ("Segoe UI", 10, "bold"),
-            "width": 20,
-            "height": 2,
-            "relief": "flat",
-            "bd": 0,
-            "cursor": "hand2"
-        }
+        self.buttons_frame = tk.Frame(self.root, bg="#121212")
+        self.buttons_frame.pack(pady=10)
 
         tk.Button(self.buttons_frame, text="Upload Template", command=self.upload_template,
-                bg="#2a2a2a", fg="white", activebackground="#3c3c3c", activeforeground="white", **style
-        ).grid(row=0, column=0, padx=15)
+                  bg="#2d2d2d", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#444").grid(row=0, column=0, padx=10)
 
         tk.Button(self.buttons_frame, text="Generate Document(s)", command=self.generate_documents,
-                bg="#d32f2f", fg="white", activebackground="#b71c1c", activeforeground="white", **style
-        ).grid(row=0, column=1, padx=15)
-
-
+                  bg="#0078d4", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#005ea2").grid(row=0, column=1, padx=10)
 
     def load_templates(self):
-        for widget in self.template_inner_frame.winfo_children():
+        for widget in self.template_frame.winfo_children():
             widget.destroy()
 
         if not os.path.exists(TEMPLATE_FOLDER):
             os.makedirs(TEMPLATE_FOLDER)
 
         files = [f for f in os.listdir(TEMPLATE_FOLDER) if f.endswith(".docx")]
-        for file in sorted(files):
+        for file in files:
             var = IntVar()
-            cb = Checkbutton(self.template_inner_frame, text=file, variable=var,
+            cb = Checkbutton(self.template_frame, text=file, variable=var,
                              font=("Segoe UI", 10), anchor="w", command=self.update_selected_templates,
                              bg="#1e1e1e", fg="white", wraplength=330, justify="left",
                              selectcolor="#1e1e1e", activebackground="#1e1e1e")
@@ -108,7 +82,7 @@ class PolyApp:
 
     def update_selected_templates(self):
         self.selected_templates = []
-        for widget in self.template_inner_frame.winfo_children():
+        for widget in self.template_frame.winfo_children():
             if isinstance(widget, Checkbutton) and widget.var.get() == 1:
                 self.selected_templates.append(widget.filename)
         self.load_fields()
@@ -136,7 +110,7 @@ class PolyApp:
         return fields
 
     def load_fields(self):
-        for widget in self.fields_inner_frame.winfo_children():
+        for widget in self.fields_frame.winfo_children():
             widget.destroy()
 
         all_fields = set()
@@ -150,16 +124,15 @@ class PolyApp:
 
         self.entries = {}
         for field in sorted(all_fields):
-            tk.Label(self.fields_inner_frame, text=field.replace("_", " "), bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
-            entry = Entry(self.fields_inner_frame, width=50, bg="#2a2a2a", fg="white", insertbackground="white", font=("Segoe UI", 10))
+            tk.Label(self.fields_frame, text=field.replace("_", " "), bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
+            entry = Entry(self.fields_frame, width=50, bg="#2a2a2a", fg="white", insertbackground="white", font=("Segoe UI", 10))
             entry.pack(anchor="w", padx=10, pady=2)
             self.entries[field] = entry
 
     def generate_documents(self):
         output_dir = filedialog.askdirectory(title="Select Output Folder")
         if not output_dir:
-            output_dir = "output"
-        os.makedirs(output_dir, exist_ok=True)
+            return
 
         values = {key: entry.get() for key, entry in self.entries.items()}
 
@@ -175,33 +148,77 @@ class PolyApp:
                 messagebox.showerror("Error", f"Could not process {filename}:\n{str(e)}")
                 return
 
-        messagebox.showinfo("Success", f"Documents saved to '{output_dir}' folder.")
-        try:
-            if os.name == 'nt':
-                os.startfile(output_dir)
-            elif os.name == 'posix':
-                import subprocess
-                subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', output_dir])
-        except Exception as e:
-            messagebox.showwarning("Warning", f"Could not open folder:\n{str(e)}")
+        os.startfile(output_dir)
+        messagebox.showinfo("Success", f"Documents saved to '{output_dir}'.")
 
     def replace_placeholders(self, doc, replacements):
-        def replace_text_in_run(run):
-            for key, value in replacements.items():
-                placeholder = f"{{poly.{key}}}"
-                if placeholder in run.text:
-                    run.text = run.text.replace(placeholder, value)
+        pattern = re.compile(r"\{poly\.([a-zA-Z0-9_ ]+)\}")
+
+        def split_runs_by_char(paragraph):
+            chars = []
+            for run in paragraph.runs:
+                for c in run.text:
+                    chars.append({
+                        "char": c,
+                        "bold": run.bold,
+                        "italic": run.italic,
+                        "underline": run.underline
+                    })
+            return chars
+
+        def apply_replacement(paragraph):
+            chars = split_runs_by_char(paragraph)
+            full_text = ''.join(c['char'] for c in chars)
+
+            matches = list(pattern.finditer(full_text))
+            if not matches:
+                return
+
+            new_chars = []
+            last_idx = 0
+
+            for match in matches:
+                start, end = match.span()
+                field = match.group(1)
+                replacement = replacements.get(field, match.group(0))
+
+                new_chars.extend(chars[last_idx:start])  # Add everything before
+                new_chars.extend([{
+                    "char": rc,
+                    "bold": chars[start]['bold'],
+                    "italic": chars[start]['italic'],
+                    "underline": chars[start]['underline']
+                } for rc in replacement])  # Add replacement with formatting from match start
+                last_idx = end
+
+            new_chars.extend(chars[last_idx:])  # Add remaining
+
+            for run in paragraph.runs:
+                run.text = ""
+            paragraph._element.clear_content()
+
+            new_run = None
+            for i, ch in enumerate(new_chars):
+                if (
+                    new_run is None or
+                    new_run.bold != ch['bold'] or
+                    new_run.italic != ch['italic'] or
+                    new_run.underline != ch['underline']
+                ):
+                    new_run = paragraph.add_run()
+                    new_run.bold = ch['bold']
+                    new_run.italic = ch['italic']
+                    new_run.underline = ch['underline']
+                new_run.text += ch['char']
 
         for para in doc.paragraphs:
-            for run in para.runs:
-                replace_text_in_run(run)
+            apply_replacement(para)
 
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for para in cell.paragraphs:
-                        for run in para.runs:
-                            replace_text_in_run(run)
+                        apply_replacement(para)
 
 if __name__ == "__main__":
     root = tk.Tk()
