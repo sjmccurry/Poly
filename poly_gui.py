@@ -50,7 +50,7 @@ class PolyApp:
         self.load_templates()
 
     def create_widgets(self):
-        tk.Label(self.root, text="Poly Document Generator", font=("Segoe UI", 20, "bold"), bg="#121212", fg="white").pack(pady=10)
+        tk.Label(self.root, text="Poly", font=("Segoe UI", 20, "bold"), bg="#121212", fg="white").pack(pady=10)
 
         main_frame = tk.Frame(self.root, bg="#121212")
         main_frame.pack(fill="both", expand=True, padx=20, pady=10)
