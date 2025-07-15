@@ -185,18 +185,19 @@ class PolyApp:
                 pass
             return None
 
-
         def split_runs_by_char(paragraph):
             chars = []
             for run in paragraph.runs:
                 font_name = get_effective_font(run)
+                font_size = run.font.size
                 for c in run.text:
                     chars.append({
                         "char": c,
                         "bold": run.bold,
                         "italic": run.italic,
                         "underline": run.underline,
-                        "font": font_name
+                        "font": font_name,
+                        "size": font_size
                     })
             return chars
 
@@ -217,8 +218,18 @@ class PolyApp:
                 replacement = replacements.get(field, match.group(0))
 
                 new_chars.extend(chars[last_idx:start])
-                fmt = chars[start] if start < len(chars) else {"bold": None, "italic": None, "underline": None, "font": None}
-                new_chars.extend([{ "char": rc, "bold": fmt['bold'], "italic": fmt['italic'], "underline": fmt['underline'], "font": fmt['font'] } for rc in replacement])
+                fmt = chars[start] if start < len(chars) else {
+                    "bold": None, "italic": None, "underline": None,
+                    "font": None, "size": None
+                }
+                new_chars.extend([{ 
+                    "char": rc, 
+                    "bold": fmt['bold'], 
+                    "italic": fmt['italic'], 
+                    "underline": fmt['underline'], 
+                    "font": fmt['font'], 
+                    "size": fmt['size'] 
+                } for rc in replacement])
                 last_idx = end
 
             new_chars.extend(chars[last_idx:])
@@ -226,7 +237,6 @@ class PolyApp:
             for run in paragraph.runs:
                 run.text = ""
 
-            # Rebuild using the same paragraph without wiping its XML
             new_run = None
             for ch in new_chars:
                 if (
@@ -234,7 +244,8 @@ class PolyApp:
                     new_run.bold != ch['bold'] or
                     new_run.italic != ch['italic'] or
                     new_run.underline != ch['underline'] or
-                    (new_run.font.name != ch['font'] if ch['font'] else False)
+                    (new_run.font.name != ch['font'] if ch['font'] else False) or
+                    (new_run.font.size != ch['size'] if ch['size'] else False)
                 ):
                     new_run = paragraph.add_run()
                     new_run.bold = ch['bold']
@@ -244,9 +255,13 @@ class PolyApp:
                         try:
                             new_run.font.name = ch['font']
                         except:
-                            pass  # just in case the font is unavailable
+                            pass
+                    if ch['size']:
+                        try:
+                            new_run.font.size = ch['size']
+                        except:
+                            pass
                 new_run.text += ch['char']
-
 
         for para in doc.paragraphs:
             apply_replacement(para)
@@ -256,6 +271,7 @@ class PolyApp:
                 for cell in row.cells:
                     for para in cell.paragraphs:
                         apply_replacement(para)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
