@@ -21,7 +21,6 @@ from the author or WMM Legal.
 
 
 import os
-import socket
 import re
 try:
     import tkinter as tk
@@ -34,23 +33,6 @@ try:
 except:
     os.system('pip3 install python-docx')
     from docx import Document
-
-import socket
-import os
-
-def has_internet(host="8.8.8.8", port=53, timeout=2):
-    try:
-        socket.setdefaulttimeout(timeout)
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
-        return True
-    except Exception:
-        return False
-
-if has_internet():
-    os.system("python poly_updator.py")
-
-
-
 
 TEMPLATE_FOLDER = "templates"
 
@@ -159,20 +141,25 @@ class PolyApp:
             self.entries[field] = entry
 
     def generate_documents(self):
+        output_dir = "output"
+        os.makedirs(output_dir, exist_ok=True)
+
         values = {key: entry.get() for key, entry in self.entries.items()}
 
         for filename in self.selected_templates:
             try:
                 doc_path = os.path.join(TEMPLATE_FOLDER, filename)
-                doc = Document(doc_path)  # Reload fresh document each time
+                doc = Document(doc_path)
                 self.replace_placeholders(doc, values)
                 new_name = filename.replace(".docx", "_filled.docx")
-                doc.save(os.path.join(TEMPLATE_FOLDER, new_name))  # Save in template folder or change as needed
+                output_path = os.path.join(output_dir, new_name)
+                doc.save(output_path)
             except Exception as e:
                 messagebox.showerror("Error", f"Could not process {filename}:\n{str(e)}")
                 return
 
-        messagebox.showinfo("Success", "Documents generated successfully!")
+        messagebox.showinfo("Success", f"Documents saved to '{output_dir}' folder.")
+
 
     def replace_placeholders(self, doc, replacements):
         def replace_text_in_run(run):
