@@ -18,19 +18,3 @@
 3. Select one or more templates.
 4. Enter values for the detected variables in the sidebar.
 5. Click **Generate Document(s)** to output filled copies.
-
-## Requirements
-
-- Python 3.10+
-- `python-docx`
-- `tkinter` (usually included with Python)
-
-Install the required library:
-
-```bash
-pip install python-docx
-```
-
-## Version
-
-v1.0.0
