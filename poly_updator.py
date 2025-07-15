@@ -10,6 +10,12 @@ try:
     import requests
 except:
     os.system('pip3 install requests')
+try:
+    from docx import Document
+except:
+    os.system('pip3 install python-docx')
+
+
 import subprocess
 import sys
 
@@ -23,7 +29,6 @@ SCRIPT_URL = "https://raw.githubusercontent.com/sjmccurry/Poly/refs/heads/main/p
 LOCAL_SCRIPT = "poly_gui.py"
 LOCAL_VERSION_FILE = "version.txt"
 
-# Create basic GUI window
 root = tk.Tk()
 root.title("Poly Updater")
 root.geometry("400x120")
