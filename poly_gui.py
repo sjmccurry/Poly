@@ -62,6 +62,9 @@ class PolyApp:
         tk.Button(self.buttons_frame, text="Generate Document(s)", command=self.generate_documents,
                   bg="#0078d4", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#005ea2").grid(row=0, column=1, padx=10)
 
+        tk.Button(self.buttons_frame, text="Sync Templates", command=self.sync_templates,
+                  bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#666").grid(row=0, column=2, padx=10)
+
     def load_templates(self):
         for widget in self.template_frame.winfo_children():
             widget.destroy()
@@ -95,6 +98,20 @@ class PolyApp:
             with open(file_path, "rb") as src, open(dest_path, "wb") as dst:
                 dst.write(src.read())
             self.load_templates()
+
+    def sync_templates(self):
+        sync_folder = filedialog.askdirectory(title="Select Folder to Sync Templates From")
+        if not sync_folder:
+            return
+
+        for file in os.listdir(sync_folder):
+            if file.endswith(".docx"):
+                source_path = os.path.join(sync_folder, file)
+                dest_path = os.path.join(TEMPLATE_FOLDER, file)
+                with open(source_path, "rb") as src, open(dest_path, "wb") as dst:
+                    dst.write(src.read())
+
+        self.load_templates()
 
     def extract_poly_fields(self, document):
         pattern = r"\{poly\.([a-zA-Z0-9_ ]+)\}"
