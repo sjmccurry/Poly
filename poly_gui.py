@@ -30,15 +30,15 @@ class PolyApp:
         template_outer.pack(side="left", fill="y", padx=(0, 10), pady=10)
         template_outer.pack_propagate(False)
 
-        canvas = tk.Canvas(template_outer, bg="#1e1e1e", highlightthickness=0)
-        scrollbar = tk.Scrollbar(template_outer, orient="vertical", command=canvas.yview)
-        self.template_frame = tk.Frame(canvas, bg="#1e1e1e")
+        template_canvas = tk.Canvas(template_outer, bg="#1e1e1e", highlightthickness=0)
+        template_scrollbar = tk.Scrollbar(template_outer, orient="vertical", command=template_canvas.yview)
+        template_canvas.configure(yscrollcommand=template_scrollbar.set)
+        template_scrollbar.pack(side="right", fill="y")
+        template_canvas.pack(side="left", fill="both", expand=True)
 
-        self.template_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=self.template_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        self.template_frame = tk.Frame(template_canvas, bg="#1e1e1e")
+        self.template_frame.bind("<Configure>", lambda e: template_canvas.configure(scrollregion=template_canvas.bbox("all")))
+        template_canvas.create_window((0, 0), window=self.template_frame, anchor="nw")
 
         field_outer = tk.Frame(main_frame, bg="#1e1e1e")
         field_outer.pack(side="left", fill="both", expand=True, padx=(10, 0), pady=10)
@@ -182,23 +182,24 @@ class PolyApp:
                 field = match.group(1)
                 replacement = replacements.get(field, match.group(0))
 
-                new_chars.extend(chars[last_idx:start])  # Add everything before
+                new_chars.extend(chars[last_idx:start])
+                fmt = chars[start] if start < len(chars) else {"bold": None, "italic": None, "underline": None}
                 new_chars.extend([{
                     "char": rc,
-                    "bold": chars[start]['bold'],
-                    "italic": chars[start]['italic'],
-                    "underline": chars[start]['underline']
-                } for rc in replacement])  # Add replacement with formatting from match start
+                    "bold": fmt['bold'],
+                    "italic": fmt['italic'],
+                    "underline": fmt['underline']
+                } for rc in replacement])
                 last_idx = end
 
-            new_chars.extend(chars[last_idx:])  # Add remaining
+            new_chars.extend(chars[last_idx:])
 
             for run in paragraph.runs:
                 run.text = ""
             paragraph._element.clear_content()
 
             new_run = None
-            for i, ch in enumerate(new_chars):
+            for ch in new_chars:
                 if (
                     new_run is None or
                     new_run.bold != ch['bold'] or
