@@ -1,27 +1,6 @@
-"""
-Poly Document Generator
-
-Author: Spencer McCurry
-Organization: WMM Legal
-Created: 2025
-
-Description:
-This software was developed by Spencer McCurry for use by WMM Legal.
-It is designed to manage Word document templates, detect and fill
-custom variables using a GUI interface, and preserve formatting.
-
-All rights reserved. Unauthorized copying, distribution, or modification
-of this software is strictly prohibited without prior written consent
-from the author or WMM Legal.
-
-© 2025 Spencer McCurry / WMM Legal
-"""
-
-
-
-
 import os
 import re
+import sys
 try:
     import tkinter as tk
 except:
@@ -50,40 +29,76 @@ class PolyApp:
         self.load_templates()
 
     def create_widgets(self):
-        tk.Label(self.root, text="Poly", font=("Segoe UI", 20, "bold"), bg="#121212", fg="white").pack(pady=10)
+        self.root.configure(bg="#0f0f0f")
+        tk.Label(self.root, text="Poly", font=("Segoe UI", 24, "bold"), bg="#0f0f0f", fg="white").pack(pady=(20, 10))
 
-        main_frame = tk.Frame(self.root, bg="#121212")
+        main_frame = tk.Frame(self.root, bg="#0f0f0f")
         main_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        self.template_frame = tk.Frame(main_frame, bg="#1e1e1e", width=350)
-        self.template_frame.pack(side="left", fill="y", padx=(0, 10), pady=10)
-        self.template_frame.pack_propagate(False)
+        left_panel = tk.Frame(main_frame, bg="#1a1a1a", width=370, height=600, bd=0, relief="flat")
+        left_panel.grid(row=0, column=0, sticky="ns")
+        left_panel.grid_propagate(False)
 
-        self.fields_frame = tk.Frame(main_frame, bg="#1e1e1e")
-        self.fields_frame.pack(side="left", fill="both", expand=True, padx=(10, 0), pady=10)
+        self.template_canvas = tk.Canvas(left_panel, bg="#1a1a1a", highlightthickness=0, bd=0)
+        template_scrollbar = tk.Scrollbar(left_panel, orient="vertical", command=self.template_canvas.yview, bg="#2a2a2a")
+        self.template_canvas.configure(yscrollcommand=template_scrollbar.set)
 
-        self.buttons_frame = tk.Frame(self.root, bg="#121212")
-        self.buttons_frame.pack(pady=10)
+        self.template_inner_frame = tk.Frame(self.template_canvas, bg="#1a1a1a")
+        self.template_canvas.create_window((0, 0), window=self.template_inner_frame, anchor="nw")
+        self.template_inner_frame.bind("<Configure>", lambda e: self.template_canvas.configure(scrollregion=self.template_canvas.bbox("all")))
+
+        self.template_canvas.pack(side="left", fill="both", expand=True, padx=6, pady=6)
+        template_scrollbar.pack(side="right", fill="y")
+
+        right_panel = tk.Frame(main_frame, bg="#1a1a1a", bd=0)
+        right_panel.grid(row=0, column=1, sticky="nsew", padx=(20, 0))
+        main_frame.grid_columnconfigure(1, weight=1)
+        main_frame.grid_rowconfigure(0, weight=1)
+
+        self.fields_canvas = tk.Canvas(right_panel, bg="#1a1a1a", highlightthickness=0, bd=0)
+        fields_scrollbar = tk.Scrollbar(right_panel, orient="vertical", command=self.fields_canvas.yview, bg="#2a2a2a")
+        self.fields_canvas.configure(yscrollcommand=fields_scrollbar.set)
+
+        self.fields_inner_frame = tk.Frame(self.fields_canvas, bg="#1a1a1a")
+        self.fields_canvas.create_window((0, 0), window=self.fields_inner_frame, anchor="nw")
+        self.fields_inner_frame.bind("<Configure>", lambda e: self.fields_canvas.configure(scrollregion=self.fields_canvas.bbox("all")))
+
+        self.fields_canvas.pack(side="left", fill="both", expand=True, padx=6, pady=6)
+        fields_scrollbar.pack(side="right", fill="y")
+
+        self.buttons_frame = tk.Frame(self.root, bg="#0f0f0f")
+        self.buttons_frame.pack(pady=(0, 25))
+
+        style = {
+            "font": ("Segoe UI", 10, "bold"),
+            "width": 20,
+            "height": 2,
+            "relief": "flat",
+            "bd": 0,
+            "cursor": "hand2"
+        }
 
         tk.Button(self.buttons_frame, text="Upload Template", command=self.upload_template,
-                  bg="#2d2d2d", fg="white", font=("Segoe UI", 10, "bold"),
-                  activebackground="#444").grid(row=0, column=0, padx=10)
+                bg="#2a2a2a", fg="white", activebackground="#3c3c3c", activeforeground="white", **style
+        ).grid(row=0, column=0, padx=15)
 
         tk.Button(self.buttons_frame, text="Generate Document(s)", command=self.generate_documents,
-                  bg="#0078d4", fg="white", font=("Segoe UI", 10, "bold"),
-                  activebackground="#005ea2").grid(row=0, column=1, padx=10)
+                bg="#d32f2f", fg="white", activebackground="#b71c1c", activeforeground="white", **style
+        ).grid(row=0, column=1, padx=15)
+
+
 
     def load_templates(self):
-        for widget in self.template_frame.winfo_children():
+        for widget in self.template_inner_frame.winfo_children():
             widget.destroy()
 
         if not os.path.exists(TEMPLATE_FOLDER):
             os.makedirs(TEMPLATE_FOLDER)
 
         files = [f for f in os.listdir(TEMPLATE_FOLDER) if f.endswith(".docx")]
-        for file in files:
+        for file in sorted(files):
             var = IntVar()
-            cb = Checkbutton(self.template_frame, text=file, variable=var,
+            cb = Checkbutton(self.template_inner_frame, text=file, variable=var,
                              font=("Segoe UI", 10), anchor="w", command=self.update_selected_templates,
                              bg="#1e1e1e", fg="white", wraplength=330, justify="left",
                              selectcolor="#1e1e1e", activebackground="#1e1e1e")
@@ -93,7 +108,7 @@ class PolyApp:
 
     def update_selected_templates(self):
         self.selected_templates = []
-        for widget in self.template_frame.winfo_children():
+        for widget in self.template_inner_frame.winfo_children():
             if isinstance(widget, Checkbutton) and widget.var.get() == 1:
                 self.selected_templates.append(widget.filename)
         self.load_fields()
@@ -121,7 +136,7 @@ class PolyApp:
         return fields
 
     def load_fields(self):
-        for widget in self.fields_frame.winfo_children():
+        for widget in self.fields_inner_frame.winfo_children():
             widget.destroy()
 
         all_fields = set()
@@ -135,13 +150,15 @@ class PolyApp:
 
         self.entries = {}
         for field in sorted(all_fields):
-            tk.Label(self.fields_frame, text=field.replace("_", " "), bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
-            entry = Entry(self.fields_frame, width=50, bg="#2a2a2a", fg="white", insertbackground="white", font=("Segoe UI", 10))
+            tk.Label(self.fields_inner_frame, text=field.replace("_", " "), bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
+            entry = Entry(self.fields_inner_frame, width=50, bg="#2a2a2a", fg="white", insertbackground="white", font=("Segoe UI", 10))
             entry.pack(anchor="w", padx=10, pady=2)
             self.entries[field] = entry
 
     def generate_documents(self):
-        output_dir = "output"
+        output_dir = filedialog.askdirectory(title="Select Output Folder")
+        if not output_dir:
+            output_dir = "output"
         os.makedirs(output_dir, exist_ok=True)
 
         values = {key: entry.get() for key, entry in self.entries.items()}
@@ -159,7 +176,14 @@ class PolyApp:
                 return
 
         messagebox.showinfo("Success", f"Documents saved to '{output_dir}' folder.")
-
+        try:
+            if os.name == 'nt':
+                os.startfile(output_dir)
+            elif os.name == 'posix':
+                import subprocess
+                subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', output_dir])
+        except Exception as e:
+            messagebox.showwarning("Warning", f"Could not open folder:\n{str(e)}")
 
     def replace_placeholders(self, doc, replacements):
         def replace_text_in_run(run):
