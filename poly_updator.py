@@ -1,12 +1,18 @@
+import os
+
+
 try:
     import tkinter as tk
 except:
     os.system('pip3 install tkinter')
     import tkinter as tk
-import requests
+try:
+    import requests
+except:
+    os.system('pip3 install requests')
 import subprocess
 import sys
-import os
+
 import tkinter as tk
 import time
 
