@@ -13,7 +13,7 @@ class PolyApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Poly Document Generator")
-        self.root.geometry("1200x700")
+        self.root.geometry("1280x720")
         self.root.configure(bg="#121212")
 
         self.selected_templates = []
@@ -52,17 +52,22 @@ class PolyApp:
             pass
 
     def create_widgets(self):
-        tk.Label(self.root, text="Poly", font=("Segoe UI", 20, "bold"), bg="#121212", fg="white").pack(pady=10)
+        header = tk.Frame(self.root, bg="#1f1f1f")
+        header.pack(fill="x")
+        tk.Label(header, text="Poly Document Generator", font=("Segoe UI", 24, "bold"), bg="#1f1f1f", fg="white").pack(pady=10)
 
         main_frame = tk.Frame(self.root, bg="#121212")
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=10)
 
-        template_outer = tk.Frame(main_frame, bg="#1e1e1e", width=450)
-        template_outer.pack(side="left", fill="y", padx=(0, 10), pady=10)
-        template_outer.pack_propagate(False)
+        # Left: Templates
+        left_frame = tk.Frame(main_frame, bg="#1e1e1e", width=400)
+        left_frame.pack(side="left", fill="y", padx=(0, 10))
+        left_frame.pack_propagate(False)
 
-        template_canvas = tk.Canvas(template_outer, bg="#1e1e1e", highlightthickness=0)
-        template_scrollbar = tk.Scrollbar(template_outer, orient="vertical", command=template_canvas.yview)
+        tk.Label(left_frame, text="Templates", bg="#1e1e1e", fg="white", font=("Segoe UI", 12, "bold")).pack(pady=10)
+
+        template_canvas = tk.Canvas(left_frame, bg="#1e1e1e", highlightthickness=0)
+        template_scrollbar = tk.Scrollbar(left_frame, orient="vertical", command=template_canvas.yview)
         template_canvas.configure(yscrollcommand=template_scrollbar.set)
         template_scrollbar.pack(side="right", fill="y")
         template_canvas.pack(side="left", fill="both", expand=True)
@@ -71,11 +76,14 @@ class PolyApp:
         self.template_frame.bind("<Configure>", lambda e: template_canvas.configure(scrollregion=template_canvas.bbox("all")))
         template_canvas.create_window((0, 0), window=self.template_frame, anchor="nw")
 
-        field_outer = tk.Frame(main_frame, bg="#1e1e1e")
-        field_outer.pack(side="left", fill="both", expand=True, padx=(10, 0), pady=10)
+        # Center: Fields
+        center_frame = tk.Frame(main_frame, bg="#1e1e1e")
+        center_frame.pack(side="left", fill="both", expand=True)
 
-        field_canvas = tk.Canvas(field_outer, bg="#1e1e1e", highlightthickness=0)
-        field_scrollbar = tk.Scrollbar(field_outer, orient="vertical", command=field_canvas.yview)
+        tk.Label(center_frame, text="Fill in Fields", bg="#1e1e1e", fg="white", font=("Segoe UI", 12, "bold")).pack(pady=10)
+
+        field_canvas = tk.Canvas(center_frame, bg="#1e1e1e", highlightthickness=0)
+        field_scrollbar = tk.Scrollbar(center_frame, orient="vertical", command=field_canvas.yview)
         self.fields_frame = tk.Frame(field_canvas, bg="#1e1e1e")
 
         self.fields_frame.bind("<Configure>", lambda e: field_canvas.configure(scrollregion=field_canvas.bbox("all")))
@@ -84,17 +92,23 @@ class PolyApp:
         field_canvas.pack(side="left", fill="both", expand=True)
         field_scrollbar.pack(side="right", fill="y")
 
-        self.buttons_frame = tk.Frame(self.root, bg="#121212")
-        self.buttons_frame.pack(pady=10)
+        # Right: Actions
+        right_frame = tk.Frame(main_frame, bg="#1e1e1e", width=200)
+        right_frame.pack(side="left", fill="y", padx=(10, 0))
+        right_frame.pack_propagate(False)
 
-        tk.Button(self.buttons_frame, text="Upload Template", command=self.upload_template,
-                  bg="#2d2d2d", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#444").grid(row=0, column=0, padx=10)
+        tk.Label(right_frame, text="Actions", bg="#1e1e1e", fg="white", font=("Segoe UI", 12, "bold")).pack(pady=10)
 
-        tk.Button(self.buttons_frame, text="Generate Document(s)", command=self.generate_documents,
-                  bg="#0078d4", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#005ea2").grid(row=0, column=1, padx=10)
+        button_style = {"bg": "#2d2d2d", "fg": "white", "font": ("Segoe UI", 10, "bold"), "activebackground": "#444", "width": 20, "anchor": "w"}
+        highlight_style = button_style.copy()
+        highlight_style["bg"] = "#0078d4"
+        highlight_style["activebackground"] = "#005ea2"
 
-        tk.Button(self.buttons_frame, text="Select Template Folder", command=self.select_template_folder,
-                  bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), activebackground="#666666").grid(row=0, column=2, padx=10)
+        tk.Button(right_frame, text="Generate Document(s)", command=self.generate_documents, **highlight_style).pack(pady=10)
+        tk.Button(right_frame, text="Upload Template", command=self.upload_template, **button_style).pack(pady=10)
+
+
+        tk.Button(right_frame, text="Select Template Folder", command=self.select_template_folder, **button_style).pack(pady=10)
 
     def select_template_folder(self):
         folder = filedialog.askdirectory(title="Select Template Folder")
@@ -115,7 +129,7 @@ class PolyApp:
             var = IntVar()
             cb = Checkbutton(self.template_frame, text=file, variable=var,
                              font=("Segoe UI", 10), anchor="w", command=self.update_selected_templates,
-                             bg="#1e1e1e", fg="white", wraplength=430, justify="left",
+                             bg="#1e1e1e", fg="white", wraplength=280, justify="left",
                              selectcolor="#1e1e1e", activebackground="#1e1e1e")
             cb.var = var
             cb.filename = file
