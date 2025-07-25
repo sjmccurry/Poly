@@ -116,6 +116,17 @@ class PolyApp:
 
 
         tk.Button(right_frame, text="Select Template Folder", command=self.select_template_folder, **button_style).pack(pady=10)
+                # Enable mouse wheel scrolling inside template and field areas
+        def bind_scroll(widget, canvas):
+            def on_mousewheel(event):
+                canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            widget.bind("<Enter>", lambda e: widget.bind_all("<MouseWheel>", on_mousewheel))
+            widget.bind("<Leave>", lambda e: widget.unbind_all("<MouseWheel>"))
+
+        bind_scroll(self.template_frame, template_canvas)
+        bind_scroll(self.fields_frame, field_canvas)
+
+
 
     def select_template_folder(self):
         folder = filedialog.askdirectory(title="Select Template Folder")
@@ -172,6 +183,9 @@ class PolyApp:
         return fields
 
     def load_fields(self):
+        # Save current values before clearing
+        existing_values = {key: entry.get() for key, entry in self.entries.items()}
+
         for widget in self.fields_frame.winfo_children():
             widget.destroy()
 
@@ -190,6 +204,10 @@ class PolyApp:
             tk.Label(self.fields_frame, text=label_text, bg="#1e1e1e", fg="white", font=("Segoe UI", 10)).pack(anchor="w", padx=10, pady=(10, 2))
             entry = Entry(self.fields_frame, width=50, bg="#2a2a2a", fg="white", insertbackground="white", font=("Segoe UI", 10))
             entry.pack(anchor="w", padx=10, pady=2)
+
+            # Restore value if it existed
+            if field in existing_values:
+                entry.insert(0, existing_values[field])
             self.entries[field] = entry
 
     def generate_documents(self):
