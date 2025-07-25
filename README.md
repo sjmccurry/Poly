@@ -19,7 +19,3 @@
 4. Enter values for the detected variables in the sidebar.
 5. Click **Generate Document(s)** to output filled copies.
 
-
-## IMPORTANT
-You MUST have a "templates" and a "output" folder in the same directory as the code files or else it will not work! 
-ALWAYS run the poly_updater file!
