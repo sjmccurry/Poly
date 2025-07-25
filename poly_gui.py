@@ -117,14 +117,30 @@ class PolyApp:
 
         tk.Button(right_frame, text="Select Template Folder", command=self.select_template_folder, **button_style).pack(pady=10)
                 # Enable mouse wheel scrolling inside template and field areas
-        def bind_scroll(widget, canvas):
+        def bind_mousewheel(widget, canvas):
             def on_mousewheel(event):
-                canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-            widget.bind("<Enter>", lambda e: widget.bind_all("<MouseWheel>", on_mousewheel))
-            widget.bind("<Leave>", lambda e: widget.unbind_all("<MouseWheel>"))
+                if os.name == 'nt':  # Windows
+                    canvas.yview_scroll(-1 * int(event.delta / 120), "units")
+                elif os.name == 'posix':  # macOS or Linux
+                    canvas.yview_scroll(-1 * int(event.delta), "units")
 
-        bind_scroll(self.template_frame, template_canvas)
-        bind_scroll(self.fields_frame, field_canvas)
+            def bind_scroll(event):
+                widget.bind_all("<MouseWheel>", on_mousewheel)       # Windows/macOS
+                widget.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # Linux
+                widget.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))   # Linux
+
+            def unbind_scroll(event):
+                widget.unbind_all("<MouseWheel>")
+                widget.unbind_all("<Button-4>")
+                widget.unbind_all("<Button-5>")
+
+            widget.bind("<Enter>", bind_scroll)
+            widget.bind("<Leave>", unbind_scroll)
+
+
+        bind_mousewheel(self.template_frame, template_canvas)
+        bind_mousewheel(self.fields_frame, field_canvas)
+
 
 
 
